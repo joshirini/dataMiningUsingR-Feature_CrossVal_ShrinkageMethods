@@ -1,0 +1,198 @@
+---
+title: "CrossValidation_Feature_Shrinkage_markdown"
+author: "Rini Joshi"
+date: "3/8/2017"
+output: word_document
+---
+
+
+```{r ScatterPlot}
+train_df <- read.csv("HW4Data.csv")
+test_df <- read.csv("HW4DataTest.csv")
+
+#ScatterPlot of the test and train dataset to understand relationship between variables.
+plot(train_df$x,train_df$y,main="Scatterplot of Training Data", pch=3,col="red")
+
+plot(test_df$x,test_df$y,main="Scatterplot of Test Data", pch=3,col="blue")
+```
+
+```{r LOOCV Errors}
+set.seed(123457)
+library(boot) 
+#Using Leave one out Cross Validation (LOOCV) errors, we try various models and see which one has the least error. 
+fit1 <- glm(y~x, data=train_df, family = "gaussian")
+cv.err1 <- cv.glm(train_df,fit1)$delta
+cv.err1
+ 
+fit2 <- glm(y~x + I(x^2), data=train_df, family = "gaussian")
+cv.err2 <- cv.glm(train_df,fit2)$delta
+cv.err2
+ 
+fit3 <- glm(y~x + I(x^2) + I(x^3), data=train_df, family = "gaussian")
+cv.err3 <- cv.glm(train_df,fit3)$delta
+cv.err3
+ 
+fit4 <- glm(y~x + I(x^2) + I(x^3) + I(x^4), data=train_df, family = "gaussian")
+cv.err4 <- cv.glm(train_df,fit4)$delta
+cv.err4
+```
+
+```{r LOOCV Errors_using random seed}
+set.seed(1237)
+fit1 <- glm(y~x, data=train_df, family = "gaussian")
+cv.err1 <- cv.glm(train_df,fit1)$delta
+cv.err1
+ 
+fit2 <- glm(y~x + I(x^2), data=train_df, family = "gaussian")
+cv.err2 <- cv.glm(train_df,fit2)$delta
+cv.err2
+ 
+fit3 <- glm(y~x + I(x^2) + I(x^3), data=train_df, family = "gaussian")
+cv.err3 <- cv.glm(train_df,fit3)$delta
+cv.err3
+ 
+fit4 <- glm(y~x + I(x^2) + I(x^3) + I(x^4), data=train_df, family = "gaussian")
+cv.err4 <- cv.glm(train_df,fit4)$delta
+cv.err4
+```
+
+```{r Results}
+
+summary(fit4)
+
+```
+
+```{r feature selection}
+
+#perform best subset selection in order to choose the best model containing the predictors X, X2, . . .,X10.
+library(leaps)
+regfit.full = regsubsets(y~poly(x,10, raw = "TRUE"), data=train_df, nvmax=10)
+reg.summary <- summary(regfit.full)
+
+
+mcp <- which.min(reg.summary$cp)
+mcp
+mbic <- which.min(reg.summary$bic)
+mbic
+madjr2 <- which.max(reg.summary$adjr2)
+madjr2
+
+plot(reg.summary$cp,xlab="Number of Variables",ylab="cp",type='l')
+points(mcp,reg.summary$cp[mcp],col="red",cex=2,pch=20)
+coef(regfit.full,mcp)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="bic",type='l')
+points(mbic,reg.summary$cp[mbic],col="red",cex=2,pch=20)
+plot(regfit.full,scale="bic")
+coef(regfit.full,mbic)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="adjustedr2",type='l')
+points(madjr2,reg.summary$cp[madjr2],col="red",cex=2,pch=20)
+plot(regfit.full,scale="adjr2")
+coef(regfit.full,madjr2)
+
+```
+```{r forward and backward stepwise feature selection}
+regfit.full = regsubsets(y~poly(x,10), data=train_df, nvmax=10,method="forward")
+reg.summary <- summary(regfit.full)
+
+mcp <- which.min(reg.summary$cp)
+mcp
+mbic <- which.min(reg.summary$bic)
+mbic
+madjr2 <- which.max(reg.summary$adjr2)
+madjr2
+
+plot(reg.summary$cp,xlab="Number of Variables",ylab="cp",type='l')
+points(mcp,reg.summary$cp[mcp],col="red",cex=2,pch=20)
+coef(regfit.full,mcp)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="bic",type='l')
+points(mbic,reg.summary$cp[mbic],col="red",cex=2,pch=20)
+plot(regfit.full,scale="bic")
+coef(regfit.full,mbic)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="adjustedr2",type='l')
+points(madjr2,reg.summary$cp[madjr2],col="red",cex=2,pch=20)
+plot(regfit.full,scale="adjr2")
+coef(regfit.full,madjr2)
+
+regfit.full = regsubsets(y~poly(x,10), data=train_df, nvmax=10,method="backward")
+reg.summary <- summary(regfit.full)
+
+mcp <- which.min(reg.summary$cp)
+mcp
+mbic <- which.min(reg.summary$bic)
+mbic
+madjr2 <- which.max(reg.summary$adjr2)
+madjr2
+
+plot(reg.summary$cp,xlab="Number of Variables",ylab="cp",type='l')
+points(mcp,reg.summary$cp[mcp],col="red",cex=2,pch=20)
+coef(regfit.full,mcp)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="bic",type='l')
+points(mbic,reg.summary$cp[mbic],col="red",cex=2,pch=20)
+plot(regfit.full,scale="bic")
+coef(regfit.full,mbic)
+plot(reg.summary$cp,xlab="Number of Variables",ylab="adjustedr2",type='l')
+points(madjr2,reg.summary$cp[madjr2],col="red",cex=2,pch=20)
+plot(regfit.full,scale="adjr2")
+coef(regfit.full,madjr2)
+```
+
+```{r Lasso Model}
+#a lasso model to the data, again using X, X2,…, X10 as predictors. Used cross-validation to select the optimal value of λ. 
+set.seed(123457)
+library(glmnet)
+
+x <- model.matrix(y ~ x + I(x^2) + I(x^3) + I(x^4) + I(x^5) + I(x^6) + I(x^7) + I(x^8) + I(x^9) + I(x^10), train_df)[, -1]
+y <- train_df$y
+grid=10^seq(10,-2,length=100)
+train<-sample(1:nrow(x), nrow(x)/2)
+test=(-train)
+lasso.mod <- glmnet(x[train,], y[train], alpha=1, lambda=grid)
+
+plot(lasso.mod)
+
+set.seed(123457)
+cv.out<-cv.glmnet(x[train,], y[train], alpha=1)
+plot(cv.out)
+
+bestlam <- cv.out$lambda.min
+bestlam
+
+lasso.coef=predict(cv.out,type="coefficients",s=bestlam)[1:11,]
+lasso.coef[lasso.coef!=0]
+```
+
+```{r Generating predictions on LOOCV}
+
+fit3 <- glm(y~x + I(x^2) + I(x^3), data=train_df, family = "gaussian")
+fit3_predict <- predict(fit3,test_df, type="response")
+actual <- test_df$y
+MSE <- mean((actual - fit3_predict)^2)
+MSE
+
+```
+
+```{r Comparing all the models}
+regfit.full = regsubsets(y~poly(x,10, raw="TRUE"), data=train_df, nvmax=10)
+test_matrix <- model.matrix(y~poly(x,10, raw = "TRUE"), data=test_df)
+val.errors <- rep(NA, 10)
+for(i in 1:10) {
+  coefi <- coef(regfit.full, id=i)
+  pred <- test_matrix[,names(coefi)]%*%coefi
+  val.errors[i] <- mean((test_df$y-pred)^2)
+}
+which.min(val.errors)
+
+val.errors
+
+set.seed(123457)
+lasso_matrix <- model.matrix(y ~ poly(x, 10, raw=TRUE), test_df)[,-1]
+lasso_preds <- predict(cv.out, s=bestlam, newx=lasso_matrix)
+lasso_actual <- test_df$y
+metrics <- c("MSE")
+x1 <- mean((lasso_actual-lasso_preds)^2)
+values<-c(x1)
+
+out_sample_eval <- data.frame(metrics, values)
+out_sample_eval
+
+```
